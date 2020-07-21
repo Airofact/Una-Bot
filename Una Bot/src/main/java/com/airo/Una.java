@@ -1,15 +1,21 @@
 package com.airo;
 
+//基本库
 import com.sobte.cqp.jcq.entity.*;
 import com.sobte.cqp.jcq.event.JcqAppAbstract;
-import org.jetbrains.annotations.NotNull;
+import org.luaj.vm2.LuaString;
+import org.luaj.vm2.LuaTable;
+import org.luaj.vm2.LuaUserdata;
+import org.luaj.vm2.LuaValue;
 
+//不知道有什么用反正先留着吧
 import javax.swing.*;
 
+//读取数据用
 import java.io.*;
 import java.util.*;
 
-import static com.airo.Commands.*;
+import static com.airo.Command.*;
 
 /**
  * 本文件是JCQ插件的主类<br>
@@ -27,6 +33,8 @@ public class Una extends JcqAppAbstract implements ICQVer, IMsg, IRequest {
 
 	public static Una ins;
 	public static String appDirectory;
+	public static LuaEnv lua;
+	public static IOX io;
 
 	//<editor-fold desc="Main">
 
@@ -49,7 +57,7 @@ public class Una extends JcqAppAbstract implements ICQVer, IMsg, IRequest {
 		// 依次类推，可以根据实际情况修改参数，和方法测试效果
 		// 以下是收尾触发函数
 		// demo.disable();// 实际过程中程序结束不会触发disable，只有用户关闭了此插件才会触发
-		ins.exit();// 最后程序运行结束，调用exit方法
+		//ins.exit();// 最后程序运行结束，调用exit方法
 	}
 
 	//</editor-fold>
@@ -86,7 +94,10 @@ public class Una extends JcqAppAbstract implements ICQVer, IMsg, IRequest {
 
 		// 返回如：D:\CoolQ\app\com.sobte.cqp.jcq\app\com.example.demo\
 		// 应用的所有数据、配置【必须】存放于此目录，避免给用户带来困扰。
+		io=new IOX();
 
+ 		lua= new LuaEnv();
+		Event.DoEvent(Event.EVENT_INIT,new LuaUserdata(this));
 		//Reset Data
 		try {
 			resetData();
@@ -193,7 +204,7 @@ public class Una extends JcqAppAbstract implements ICQVer, IMsg, IRequest {
 		// 这里处理消息
 
 		try {
-			Commands.CheckGrpMsgs(fromGroup,fromQQ,msg);
+			Command.CheckGrpMsgs(fromGroup,fromQQ,msg);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -383,6 +394,11 @@ public class Una extends JcqAppAbstract implements ICQVer, IMsg, IRequest {
 
 	//<editor-fold desc="Other Functions Define">
 
+	/**
+	 * 重置数据
+	 * @return 返回数据文件
+	 * @throws IOException
+	 */
 		public static File resetData() throws IOException {
 			File data=new File(appDirectory+"data.airo");
 			if(!data.exists()){
@@ -414,6 +430,11 @@ public class Una extends JcqAppAbstract implements ICQVer, IMsg, IRequest {
 			return data;
 		}
 
+	/**
+	 * 读取数据（可能会炸）
+	 * @return 返回数据
+	 * @throws IOException
+	 */
 		public static LinkedList<long[]> loadData() throws IOException {
 			LinkedList<long[]> result=new LinkedList<>();
 			File data=new File(appDirectory+"data.airo");
@@ -432,6 +453,28 @@ public class Una extends JcqAppAbstract implements ICQVer, IMsg, IRequest {
 			}
 			br.close();
 			return result;
+		}
+
+		public static void setData(long group,long id,long[] data) throws IOException {
+			LinkedList<long[]> result=new LinkedList<>();
+			File oldData=new File(appDirectory+"data.airo");
+			FileReader fr=new FileReader(oldData);
+			BufferedReader br=new BufferedReader(fr);
+			String oldDataGroup;
+			while (br.ready()){
+				String line=br.readLine();
+				String[] strValues= line.split(" ");
+				if(strValues[1].equals(group)&&strValues[2].equals(id)){
+					for (int i = 3; i < strValues.length; i++) {
+						strValues[i]=String.valueOf(data[i-2]);
+					}
+				}
+				String newLine="";
+				for(String str:strValues){
+					newLine+=str+" ";
+				}
+			}
+			br.close();
 		}
 
 	//</editor-fold>
